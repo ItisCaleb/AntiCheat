@@ -1,0 +1,62 @@
+;
+; ACDriver.inf
+;
+
+[Version]
+Signature   = "$WINDOWS NT$"
+Class       = System ; TODO: specify appropriate Class
+ClassGuid   = {4d36e97d-e325-11ce-bfc1-08002be10318} ; TODO: specify appropriate ClassGuid
+Provider    = %ManufacturerName%
+CatalogFile = ACDriver.cat
+DriverVer   = ; TODO: set DriverVer in stampinf property pages
+PnpLockdown = 1
+
+[DestinationDirs]
+DefaultDestDir = 13
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+ACDriver.sys = 1,,
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName% = Standard,NT$ARCH$.10.0...16299 ; %13% support introduced in build 16299
+
+[Standard.NT$ARCH$.10.0...16299]
+%ACDriver.DeviceDesc% = ACDriver_Device, Root\ACDriver ; TODO: edit hw-id
+
+[ACDriver_Device.NT]
+CopyFiles = File_Copy
+
+[File_Copy]
+ACDriver.sys
+
+;-------------- Service installation
+[ACDriver_Device.NT.Services]
+AddService = ACDriver,%SPSVCINST_ASSOCSERVICE%, ACDriver_Service_Inst
+
+; -------------- ACDriver driver install sections
+[ACDriver_Service_Inst]
+DisplayName    = %ACDriver.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %13%\ACDriver.sys
+
+[ACDriver_Device.NT.Wdf]
+KmdfService = ACDriver, ACDriver_wdfsect
+
+[ACDriver_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE = 0x00000002
+ManufacturerName = "<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+DiskName = "ACDriver Installation Disk"
+ACDriver.DeviceDesc = "ACDriver Device"
+ACDriver.SVCDESC = "ACDriver Service"
