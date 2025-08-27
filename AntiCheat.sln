@@ -4,10 +4,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 17.10.35027.167
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ACApp", "ACApp\ACApp.vcxproj", "{E3F52B8F-9233-4D82-874B-71F87809AC7D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{9664D4FB-733D-4B4B-849D-F84583A557CD} = {9664D4FB-733D-4B4B-849D-F84583A557CD}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ACLib", "ACLib\ACLib.vcxproj", "{99F0C94E-13D5-4A60-9179-581C2F48C3F0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ACDriver", "ACDriver\ACDriver.vcxproj", "{0839E39F-B5D1-8233-8215-E0747786710C}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ACLoader", "ACLoader\ACLoader.vcxproj", "{9664D4FB-733D-4B4B-849D-F84583A557CD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +50,14 @@ Global
 		{0839E39F-B5D1-8233-8215-E0747786710C}.Release|x86.ActiveCfg = Release|x64
 		{0839E39F-B5D1-8233-8215-E0747786710C}.Release|x86.Build.0 = Release|x64
 		{0839E39F-B5D1-8233-8215-E0747786710C}.Release|x86.Deploy.0 = Release|x64
+		{9664D4FB-733D-4B4B-849D-F84583A557CD}.Debug|x64.ActiveCfg = Release|x64
+		{9664D4FB-733D-4B4B-849D-F84583A557CD}.Debug|x64.Build.0 = Release|x64
+		{9664D4FB-733D-4B4B-849D-F84583A557CD}.Debug|x86.ActiveCfg = Debug|Win32
+		{9664D4FB-733D-4B4B-849D-F84583A557CD}.Debug|x86.Build.0 = Debug|Win32
+		{9664D4FB-733D-4B4B-849D-F84583A557CD}.Release|x64.ActiveCfg = Release|x64
+		{9664D4FB-733D-4B4B-849D-F84583A557CD}.Release|x64.Build.0 = Release|x64
+		{9664D4FB-733D-4B4B-849D-F84583A557CD}.Release|x86.ActiveCfg = Release|Win32
+		{9664D4FB-733D-4B4B-849D-F84583A557CD}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

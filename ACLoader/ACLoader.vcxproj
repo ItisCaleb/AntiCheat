@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{e3f52b8f-9233-4d82-874b-71f87809ac7d}</ProjectGuid>
-    <RootNamespace>ACApp</RootNamespace>
+    <ProjectGuid>{9664d4fb-733d-4b4b-849d-f84583a557cd}</ProjectGuid>
+    <RootNamespace>ACLoader</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -93,8 +93,6 @@
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -102,13 +100,18 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(SolutionDir)/ACLib</AdditionalIncludeDirectories>
+      <ExceptionHandling>false</ExceptionHandling>
+      <Optimization>MinSpace</Optimization>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <NoEntryPoint>false</NoEntryPoint>
+      <IgnoreSpecificDefaultLibraries>/NODEFAULTLIB</IgnoreSpecificDefaultLibraries>
+      <EntryPointSymbol>ac_load</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -117,27 +120,25 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <ExceptionHandling>false</ExceptionHandling>
+      <Optimization>MinSpace</Optimization>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <NoEntryPoint>false</NoEntryPoint>
+      <IgnoreSpecificDefaultLibraries>/NODEFAULTLIB</IgnoreSpecificDefaultLibraries>
+      <EntryPointSymbol>ac_load</EntryPointSymbol>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="pe_parser.cpp" />
+    <ClCompile Include="loader.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\ACLib\ACLib.vcxproj">
-      <Project>{99f0c94e-13d5-4a60-9179-581c2f48c3f0}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="pe_parser.h" />
+    <ClInclude Include="lazy_importer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
