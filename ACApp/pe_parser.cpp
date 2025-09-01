@@ -1,6 +1,14 @@
 #include "pe_parser.h"
 #include <stdexcept>
 
+namespace detail {
+	inline DWORD _align(DWORD size, DWORD align, DWORD addr = 0)
+	{
+		if (!(size % align)) return addr + size;
+		return addr + (size / align + 1) * align;
+	}
+};
+
 PeFile::PeFile(const std::string &file_name){
 	FILE* f = fopen(file_name.c_str(), "rb");
 	if (!f) {
@@ -56,3 +64,49 @@ PIMAGE_SECTION_HEADER PeFile::get_section(const std::string& section_name) {
 	}
 	return nullptr;
 }
+
+void PeFile::add_section(const std::string& name, void* data, DWORD size, DWORD characteristics) {
+	PIMAGE_NT_HEADERS nt = this->get_nt_header();
+	PIMAGE_SECTION_HEADER sections = IMAGE_FIRST_SECTION(nt);
+	int num_sections = nt->FileHeader.NumberOfSections;
+
+	// Calculate new section offsets
+	DWORD file_alignment = nt->OptionalHeader.FileAlignment;
+	DWORD section_alignment = nt->OptionalHeader.SectionAlignment;
+	PIMAGE_SECTION_HEADER last_section = &sections[num_sections - 1];
+	DWORD last_section_end = last_section->PointerToRawData + last_section->SizeOfRawData;
+	DWORD new_offset = (last_section_end + file_alignment - 1) / file_alignment * file_alignment;
+
+	// Calculate virtual sizes and RVAs
+	DWORD last_rva = detail::_align(last_section->VirtualAddress + last_section->SizeOfRawData, 0x1000);
+	printf("last_rva: %llx\n", last_rva);
+
+	// Update NumberOfSections
+	nt->FileHeader.NumberOfSections++;
+	nt->OptionalHeader.SizeOfImage += size;
+
+	PIMAGE_SECTION_HEADER new_section = &sections[num_sections];
+	strncpy((char*)new_section->Name, name.c_str(), 8);
+	new_section->Misc.VirtualSize = size;
+	new_section->VirtualAddress = last_rva;
+	new_section->SizeOfRawData = size;
+	new_section->PointerToRawData = new_offset;
+	new_section->Characteristics = characteristics;
+	
+	if (new_offset + size > this->buffer.size()) {
+		this->buffer.resize(new_offset + size);
+	}
+	memcpy(this->buffer.data() + new_offset, data, size);
+	
+}
+
+void PeFile::save(const std::string& file_name) {
+	FILE* f = fopen(file_name.c_str(), "wb");
+	fwrite(this->buffer.data(), 1, this->buffer.size(), f);
+	fclose(f);
+}
+
+std::vector<BYTE>& PeFile::get_buffer() {
+	return this->buffer;
+}
+
