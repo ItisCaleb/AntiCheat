@@ -13,6 +13,48 @@
 #pragma comment(lib, "bcrypt.lib")
 #include <vector>
 #include <string.h>
+#ifndef NT_SUCCESS
+#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
+#endif
+
+static bool sha256_hash_segments(const PUCHAR seg1, ULONG seg1_len,
+                                 const PUCHAR seg2, ULONG seg2_len,
+                                 PUCHAR out32 /*32 bytes*/) {
+    BCRYPT_ALG_HANDLE hAlg = NULL;
+    BCRYPT_HASH_HANDLE hHash = NULL;
+    DWORD cb = 0, objLen = 0, hashLen = 0;
+    PUCHAR hashObj = NULL;
+    bool ok = false;
+
+    NTSTATUS st = BCryptOpenAlgorithmProvider(&hAlg, BCRYPT_SHA256_ALGORITHM, NULL, 0);
+    if (!NT_SUCCESS(st)) goto cleanup;
+    st = BCryptGetProperty(hAlg, BCRYPT_OBJECT_LENGTH, (PUCHAR)&objLen, sizeof(objLen), &cb, 0);
+    if (!NT_SUCCESS(st) || !objLen) goto cleanup;
+    st = BCryptGetProperty(hAlg, BCRYPT_HASH_LENGTH, (PUCHAR)&hashLen, sizeof(hashLen), &cb, 0);
+    if (!NT_SUCCESS(st) || hashLen != 32) goto cleanup;
+
+    hashObj = (PUCHAR)HeapAlloc(GetProcessHeap(), 0, objLen);
+    if (!hashObj) goto cleanup;
+    st = BCryptCreateHash(hAlg, &hHash, hashObj, objLen, NULL, 0, 0);
+    if (!NT_SUCCESS(st)) goto cleanup;
+
+    if (seg1 && seg1_len) {
+        st = BCryptHashData(hHash, (PUCHAR)seg1, seg1_len, 0);
+        if (!NT_SUCCESS(st)) goto cleanup;
+    }
+    if (seg2 && seg2_len) {
+        st = BCryptHashData(hHash, (PUCHAR)seg2, seg2_len, 0);
+        if (!NT_SUCCESS(st)) goto cleanup;
+    }
+    st = BCryptFinishHash(hHash, out32, hashLen, 0);
+    if (!NT_SUCCESS(st)) goto cleanup;
+    ok = true;
+cleanup:
+    if (hHash) BCryptDestroyHash(hHash);
+    if (hashObj) HeapFree(GetProcessHeap(), 0, hashObj);
+    if (hAlg)  BCryptCloseAlgorithmProvider(hAlg, 0);
+    return ok;
+}
 
 void* find_signature(void* data, DWORD size, DWORD signature){
     for (DWORD i = 0; i < size / sizeof(DWORD); i++) {
@@ -23,7 +65,6 @@ void* find_signature(void* data, DWORD size, DWORD signature){
     return nullptr;
 }
 
-// 128-bit big-endian counter自增
 static inline void incr_be_128(uint8_t ctr[16]) {
     for (int i = 15; i >= 0; --i) { if (++ctr[i] != 0) break; }
 }
@@ -79,7 +120,7 @@ int main() {
     BCryptGenRandom(NULL, AES_KEY, sizeof(AES_KEY), BCRYPT_USE_SYSTEM_PREFERRED_RNG);
     BCryptGenRandom(NULL, AES_IV,  sizeof(AES_IV),  BCRYPT_USE_SYSTEM_PREFERRED_RNG);
 
-    // 加密 .text(SizeOfRawData範圍)
+    // 加密.text(SizeOfRawData範圍)
     {
         auto& buf = f.get_buffer();
         uint8_t* textraw = (uint8_t*)&buf[text_sec->PointerToRawData];
@@ -141,6 +182,35 @@ int main() {
             else   printf("[!] iv tag %d not found\n", i);
         }
         printf("[*] Patched %d key/iv DWORDs into .stub\n", patched);
+    }
+
+    // 對最終輸出檔做SHA-256，略過32B佔位符
+    static const uint32_t HASH_TAG[8] = {
+        0x714C8F21, 0xA39D52EE, 0x5BE0CD7A, 0xC4F1A893,
+        0x2911D4BF, 0x8E7720CA, 0xF0B5C6D3, 0x63AA19E4
+    };
+    {
+        auto &buf = f.get_buffer();
+        size_t hash_off = SIZE_MAX;
+        // 在整個檔案緩衝區中尋找 32B 連續序列
+        for (size_t i = 0; i + 32 <= buf.size(); ++i) {
+            if (memcmp(buf.data() + i, HASH_TAG, 32) == 0) { hash_off = i; break; }
+        }
+        if (hash_off == SIZE_MAX) {
+            printf("[!] hash placeholder not found in stub (did you add it in loader.cpp?)\n");
+        } else {
+            uint8_t digest[32];
+            const PUCHAR seg1 = (PUCHAR)buf.data();
+            ULONG seg1_len = (ULONG)hash_off;
+            const PUCHAR seg2 = (PUCHAR)(buf.data() + hash_off + 32);
+            ULONG seg2_len = (ULONG)(buf.size() - (hash_off + 32));
+            if (!sha256_hash_segments(seg1, seg1_len, seg2, seg2_len, digest)) {
+                printf("[!] sha256 failed\n");
+            } else {
+                memcpy(buf.data() + hash_off, digest, 32);
+                printf("[*] Wrote SHA-256 at file_off=0x%llx\n", (unsigned long long)hash_off);
+            }
+        }
     }
 
 	f.save("a.packed.exe");
