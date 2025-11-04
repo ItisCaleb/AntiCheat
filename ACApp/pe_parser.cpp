@@ -102,6 +102,10 @@ void PeFile::add_section(const std::string& name, void* data, DWORD size, DWORD 
 
 void PeFile::save(const std::string& file_name) {
 	FILE* f = fopen(file_name.c_str(), "wb");
+	if (!f) {
+		printf("Can't open file '%s'\n", file_name.c_str());
+		return;
+	}
 	fwrite(this->buffer.data(), 1, this->buffer.size(), f);
 	fclose(f);
 }

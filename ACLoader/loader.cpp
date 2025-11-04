@@ -10,6 +10,15 @@
 // 建一個自訂唯讀段.acsec，最後再合併進.text
 #pragma section(".acsec", read)
 #pragma comment(linker, "/merge:.acsec=.text")
+
+#define LOG(...) do { LI_FN(printf)(__VA_ARGS__); } while(0)
+
+// 可切換的除錯輸出
+#if AC_VERBOSE
+#define DBG(...) LOG(__VA_ARGS__)
+#else
+#define DBG(...) do {} while(0)
+#endif
 // bytes_cmp：手搓的memcmp
 static inline int bytes_cmp(const void* a, const void* b, size_t n){
     const unsigned char* p = (const unsigned char*)a;
@@ -217,17 +226,11 @@ static bool verify_self_integrity_before_unpack() {
     return bytes_cmp((const void*)g_sha256_expected, digest, 32) == 0;
 }
 
+void ac_thread();
+
 extern "C" void ac_load() {
     auto msvcrtLib = LI_FN(LoadLibraryA)("msvcrt.dll");
     auto printf_f  = LI_FN(printf).in(msvcrtLib);
-    #define LOG(...) do { printf_f(__VA_ARGS__); } while(0)
-
-    // 可切換的除錯輸出
-    #if AC_VERBOSE
-      #define DBG(...) LOG(__VA_ARGS__)
-    #else
-      #define DBG(...) do {} while(0)
-    #endif
 
     auto base = LI_FN(GetModuleHandleA)((LPCSTR)NULL);
     LOG("Loading! Base at '0x%llx'\n", (ULONGLONG)base);
@@ -284,7 +287,20 @@ extern "C" void ac_load() {
         DBG("[L] ERROR: .text not found\n");
     }
 
+    LI_FN(CreateThread)((LPSECURITY_ATTRIBUTES)NULL, 0, (LPTHREAD_START_ROUTINE)ac_thread, (LPVOID)NULL, 0, (LPDWORD)NULL);
+
     ULONG_PTR jmp = (ULONG_PTR)base + (ULONG_PTR)oep;
     DBG("[L] jmp -> 0x%llx\n", (unsigned long long)jmp);
     ((void (*)())jmp)();
+}
+
+
+static void ac_thread() {
+    LOG("Anticheat Started\n");
+    while (TRUE) {
+        if (LI_FN(IsDebuggerPresent)()) {
+            LI_FN(ExitProcess)(0);
+        }
+        LI_FN(Sleep)(1000);
+    }
 }

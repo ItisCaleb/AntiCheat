@@ -111,8 +111,45 @@ cleanup:
     return ok;
 }
 
-int main() {
-	PeFile f("../a.exe");
+
+std::string insert_before_extension(const std::string& path, const std::string& marker = ".packed") {
+    if (path.empty()) return path;
+
+    size_t last_slash = path.find_last_of("/\\");
+    if (last_slash == std::string::npos) last_slash = std::string::npos; // keep as npos
+
+    size_t last_dot = path.find_last_of('.');
+
+    bool dot_valid = false;
+    if (last_dot != std::string::npos) {
+        if (last_slash == std::string::npos) {
+            if (last_dot != 0) dot_valid = true; // dot not the first char
+        }
+        else {
+            if (last_dot > last_slash + 1) dot_valid = true;
+        }
+    }
+
+    if (dot_valid) {
+        std::string out;
+        out.reserve(path.size() + marker.size());
+        out.append(path, 0, last_dot);     // [0, last_dot)
+        out.append(marker);                // marker
+        out.append(path, last_dot, std::string::npos); // from last_dot to end
+        return out;
+    }
+    else {
+        return path + marker;
+    }
+}
+
+int main(int argc, char **argv) {
+    if (argc < 2) {
+        printf("Usage: %s <program>\n", argv[0]);
+        return 0;
+    }
+    std::string file_name(argv[1]);
+	PeFile f(file_name);
 	auto text_sec = f.get_section(".text");
 	DWORD orignal_oep = f.get_nt_header()->OptionalHeader.AddressOfEntryPoint;
     // 產生隨機AES Key/IV(每次打包不同)
@@ -133,7 +170,7 @@ int main() {
         }
     }
 
-    PeFile loader("../x64/Release/ACLoader.exe");
+    PeFile loader("./x64/Release/ACLoader.exe");
     auto loader_text_sec = loader.get_section(".text");
     f.add_section(".stub", loader.get_buffer().data() + loader_text_sec->PointerToRawData,
         loader_text_sec->SizeOfRawData,
@@ -213,6 +250,6 @@ int main() {
         }
     }
 
-	f.save("a.packed.exe");
+    f.save(insert_before_extension(file_name, ".packed"));
 	return 0;
 }
